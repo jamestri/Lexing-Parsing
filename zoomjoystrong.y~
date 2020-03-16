@@ -1,0 +1,100 @@
+%{
+  #include <stdio.h>
+  #include "zoomjoystrong.h"
+  void yyerror(const char* msg);
+  void color_set(int r, int g, int b);
+  int yylex();
+  void this_setup();
+  int setup_count;
+%}
+
+%define parse.error verbose
+%union { int i; float f; }
+
+%start statements
+
+%token INT
+%token FLOAT
+%token RECTANGLE
+%token POINT
+%token CIRCLE
+%token SET_COLOR
+%token LINE
+%token END_STATEMENT
+%token END
+%token ERR
+
+%type<i> INT
+%type<f> FLOAT
+
+%%
+
+
+statements: statement statements            { this_setup(); }
+|         statement
+|         statement END     { finish(); printf("dunzo\n");}
+;
+
+statement: exp         {this_setup(); }
+;
+
+exp:        rect_exp
+  |         line_exp
+  |         point_exp
+  |         circle_exp
+  |         set_exp    
+;
+
+line_exp:  LINE INT INT INT INT END_STATEMENT        { this_setup(); line($2, $3, $4, $5); }
+;
+
+rect_exp: RECTANGLE INT INT INT INT END_STATEMENT    { this_setup(); rectangle($2, $3, $4, $5); printf("rect\n");}
+;
+
+circle_exp: CIRCLE INT INT INT END_STATEMENT         { this_setup(); circle($2, $3, $4); }
+;
+
+point_exp: POINT INT INT END_STATEMENT               { this_setup(); point($2, $3); if($2 == 216 && $3 == 371){printf("point\n");}}
+;
+
+set_exp: SET_COLOR INT INT INT END_STATEMENT         { this_setup(); color_set($2, $3, $4); }
+;
+
+
+
+
+
+%%
+int setup_count = 0;
+
+void this_setup(){
+
+  if (setup_count == 0){
+      printf("%d\n", setup_count);
+    setup();
+    ++setup_count;
+    printf("setup\n");
+  } else {
+    ++setup_count;
+  }
+}
+
+int main(int argc, char** argv){
+  yyparse();
+}
+
+void yyerror(const char* msg){
+  fprintf(stderr, "ERROR! %s\n", msg);
+}
+
+void color_set(int r, int g, int b){
+  if (r < 0 || r > 255){
+    yyerror("Red value must be between 0 and 255");
+  } else if (g < 0 || g > 255){
+    yyerror("Green value must be between 0 and 255");
+  } else if (b < 0 || b > 255){
+    yyerror("Blue value must be between 0 and 255");
+  } else {
+    set_color(r, g, b);
+  }
+}
